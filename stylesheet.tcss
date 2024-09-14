@@ -1,0 +1,46 @@
+DispatchDisplay {
+    background: $background-lighten-2;
+    min-height: 5;
+    margin: 1;
+    min-width: 50;
+    padding: 1;
+}
+
+TextMessageDisplay {
+    background: $background-lighten-3;
+    min-height: 5;
+    margin: 1;
+    min-width: 50;
+    padding: 1;
+}
+
+
+TextMessageInput {
+    dock: bottom;
+    height: 15;
+}
+
+ServerTextMessageInput {
+    dock: bottom;
+    height: 25;
+}
+
+Button {
+    margin: 1;
+}
+
+Label {
+    margin: 1;
+}
+
+.received {
+    background: $primary-lighten-2;
+}
+
+.received TextMessageDisplay {
+    background: $primary-lighten-1;
+}
+
+
+
+
