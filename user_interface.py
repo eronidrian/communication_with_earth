@@ -171,11 +171,11 @@ class TextMessageInput(Widget):
         if message.input.id == "subject":
             self.query_one("#text").focus()
         if message.input.id == "text":
-            self.on_button_pressed()
+            self.query_one("#send").action_press()
 
     def compose(self) -> ComposeResult:
         yield Label("Subject:")
         yield Input(id="subject")
         yield Label("Text:")
         yield Input(id="text")
-        yield Button(label="Send", variant="success")
+        yield Button(label="Send", variant="success", id="send")
