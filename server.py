@@ -103,7 +103,7 @@ class Server(CommunicationDevice):
         self.logger.info("Server started")
 
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.bind((self.host, self.port))
+        self.s.bind(("192.168.0.45", self.port))
         self.logger.info(f"Socket is bound to {self.host} on port {self.port}")
 
         self.s.listen(5)
@@ -131,108 +131,6 @@ class Server(CommunicationDevice):
         yield TimeDisplay()
         yield Countdown()
         yield ServerMainDisplay()
-
-
-# class CommunicationDevice(App):
-#     CSS_PATH = "stylesheet.tcss"
-#     BINDINGS = [("w", "write_message", "Write message")]
-#
-#     TITLE = "System for communication with the Earth"
-#
-#     host = socket.gethostname()
-#     port = 12345
-#
-#     s = None
-#     client = None
-#     address = None
-#
-#     logger = logging.getLogger()
-#
-#     def on_mount(self):
-#         logging.basicConfig(filename="server.log", encoding="utf-8", level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-#         self.logger.info("Server started")
-#
-#         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#         self.s.bind((self.host, self.port))
-#         self.logger.info(f"Socket is bound to {self.host} on port {self.port}")
-#
-#         self.s.listen(5)
-#         self.client, self.address = self.s.accept()
-#         self.logger.info(f"Client connected from address {self.address}")
-#
-#
-#
-#     @on(ServerTextMessageInput.ServerTextMessageSubmitted)
-#     def add_text_message_to_dispatch_display(self,
-#                                              text_message: ServerTextMessageInput.ServerTextMessageSubmitted) -> None:
-#         new_text_message = TextMessage(USERS["earth"], USERS[text_message.recipient], text_message.subject,
-#                                        text_message.text)
-#         if not self.query_one(MainDisplay).get_last_dispatch_display().add_new_text_message(new_text_message):
-#             self.notify(message="The dispatch is full. Wait for the next dispatch.", title="Full dispatch",
-#                         severity="error", timeout=5.0)
-#             self.logger.warning(f"User tried to add message to dispatch but reached dispatch limit.\n"
-#                                 f"Message: {new_text_message}")
-#         else:
-#             self.notify(message="Message was successfully added to the dispatch", severity="information", timeout=5.0)
-#             self.logger.info(f"Message was successfully added to dispatch.\n"
-#                              f"Message: {new_text_message}")
-#         self.query_one(ServerTextMessageInput).remove()
-#
-#     def send_dispatch(self, dispatch_to_send: Dispatch) -> None:
-#         try:
-#             self.client.sendall(pickle.dumps(dispatch_to_send))
-#         except BaseException as error:
-#             self.notify(title="Connection error",
-#                         message="The dispatch cannot be sent due to connection error. Inform administrator about the problem",
-#                         severity="error", timeout=30.0)
-#             self.logger.error(f"Dispatch couldn't be sent because of the following error: {error}")
-#             return
-#         self.notify(message="The dispatch has been successfully sent.", severity="information", timeout=5.0)
-#         self.logger.info("Dispatch has been successfully sent.\n"
-#                          f"Dispatch: {dispatch_to_send}")
-#
-#     def receive_dispatch(self) -> None:
-#         received_data = self.client.recv(16384)
-#         if not received_data:
-#             self.notify(title="Connection error",
-#                         message="The dispatch cannot be received due to connection error. Inform administrator about the problem",
-#                         severity="error", timeout=30.0)
-#             self.logger.error(f"Dispatch was not received. Received no data")
-#
-#             return
-#
-#         received_dispatch = pickle.loads(received_data)
-#         self.logger.info(f"New dispatch was received.\n"
-#                          f"Dispatch: {received_dispatch}")
-#
-#         received_dispatch_display = ServerDispatchDisplay(received_dispatch, received=True)
-#         self.query_one(MainDisplay).add_dispatch_display(received_dispatch_display)
-#         self.notify(message="You have received a new dispatch.", severity="information", timeout=5.0)
-#
-#
-#
-#
-#     @on(TimeDisplay.TimeToSendDispatch)
-#     def handle_incoming_and_outgoing_dispatch(self) -> None:
-#         dispatch_to_send = self.query_one(MainDisplay).get_last_dispatch_display().get_dispatch()
-#
-#         self.receive_dispatch()
-#
-#         self.send_dispatch(dispatch_to_send)
-#
-#         new_dispatch_display = ServerDispatchDisplay(Dispatch(), received=False)
-#         self.query_one(MainDisplay).add_dispatch_display(new_dispatch_display)
-#
-#     def action_write_message(self) -> None:
-#         message_input_widget = ServerTextMessageInput()
-#         self.mount(message_input_widget)
-#         message_input_widget.scroll_visible()
-#
-#     def compose(self) -> ComposeResult:
-#         yield Header(show_clock=True)
-#         yield Footer()
-#         yield TimeDisplay()
-#         yield ServerMainDisplay()
 
 
 if __name__ == "__main__":

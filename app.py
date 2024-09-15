@@ -22,7 +22,7 @@ class CommunicationDevice(App):
     TITLE = "System for communication with the Earth"
 
     def __init__(self):
-        self.host = socket.gethostname()
+        self.host = "192.168.0.45"
         self.port = 12345
         self.logger = logging.getLogger()
 
