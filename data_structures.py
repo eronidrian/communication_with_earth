@@ -99,3 +99,23 @@ class Dispatch:
             result += f"{text_message}\n"
 
         return result
+
+KEY_MAPPINGS = {
+    "+" : "1",
+    "ě" : "2",
+    "š" : "3",
+    "č" : "4",
+    "ř" : "5",
+    "ž" : "6",
+    "ý" : "7",
+    "á" : "8",
+    "í" : "9",
+    "é" : "0"
+}
+
+def decode_number(number: str) -> int:
+    new_number = ""
+    for letter in number:
+        new_number += KEY_MAPPINGS[letter]
+
+    return int(new_number)

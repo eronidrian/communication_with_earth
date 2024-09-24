@@ -1,17 +1,14 @@
-import socket
 import pickle
 import logging
 from abc import abstractmethod
 
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer
 from textual import on
 from textual_countdown import Countdown
 
 from constants import SECONDS_BETWEEN_DISPATCHES
 from data_structures import TextMessage, Dispatch
-from users import USERS
-from user_interface import UserInfoDisplay, TimeDisplay, DispatchDisplay, TextMessageInput, MainDisplay
+from user_interface import TimeDisplay, DispatchDisplay, TextMessageInput, MainDisplay
 
 
 class CommunicationDevice(App):

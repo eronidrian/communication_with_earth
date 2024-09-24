@@ -1,18 +1,19 @@
+import asyncio
 import socket
-import pickle
 import logging
-from itertools import filterfalse
+from venv import logger
 
-from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer
-from textual import on
+from textual.app import ComposeResult, RenderResult
+from textual.reactive import reactive
+from textual.timer import Timer
+from textual.widgets import Header, Footer, Input
 from textual_countdown import Countdown
 
 from app import CommunicationDevice
 from constants import SECONDS_BETWEEN_DISPATCHES
-from data_structures import User, TextMessage, Dispatch
-from users import USERS
-from user_interface import UserInfoDisplay, TimeDisplay, DispatchDisplay, MainDisplay, TextMessageInput
+from data_structures import User, TextMessage, Dispatch, decode_number, KEY_MAPPINGS
+from users import USERS, get_user_by_id
+from user_interface import UserInfoDisplay, TimeDisplay, MainDisplay, TextMessageInput
 
 
 class ClientMainDisplay(MainDisplay):
@@ -32,9 +33,13 @@ class Client(CommunicationDevice):
 
     peer = socket.socket()
 
+    submitted_id = reactive("")
+
+
     def __init__(self):
         super().__init__()
         self.current_user = USERS["no_account"]
+        self.submitting_id = False
 
     def on_mount(self):
         logging.basicConfig(filename="client.log", encoding="utf-8", level=logging.DEBUG,
@@ -58,11 +63,22 @@ class Client(CommunicationDevice):
             return False
         return super().can_be_message_added_to_dispatch(text_message)
 
-    def action_log_in(self) -> None:
-        # TODO: handle identification cards
-        self.notify(title="Provide identification", message=f"Place your identification card on the reader",
-                    severity="information", timeout=5.0)
-        self.current_user = USERS["test_encrypted_user"]
+    def on_key(self, event) -> None:
+        if len(self.submitted_id) < 7 and event.key in KEY_MAPPINGS.keys() and self.submitting_id:
+            self.submitted_id += event.key
+
+    def watch_submitted_id(self, submitted_id: str) -> None:
+        if len(submitted_id) == 7:
+            self.handle_login()
+
+    def handle_login(self):
+        parsed_id = decode_number(self.submitted_id)
+        user = get_user_by_id(parsed_id)
+        if user is None:
+            self.logger.info(f"Somebody tried to login with ID {parsed_id}")
+            self.notify(title="Invalid card", message="The card is invalid. Contact administrator", severity="error", timeout=10.0)
+            return
+        self.current_user = user
         if self.current_user.encryption_on:
             self.query_one(ClientMainDisplay).decrypt_all_dispatches_of_user(self.current_user)
             self.query_one(ClientMainDisplay).refresh(recompose=True)
@@ -71,6 +87,13 @@ class Client(CommunicationDevice):
                     severity="information",
                     timeout=5.0)
         self.logger.info(f"User {self.current_user} logged in")
+
+    def action_log_in(self) -> None:
+        # TODO: handle identification cards
+        self.notify(title="Provide identification", message=f"Place your identification card on the reader",
+                    severity="information", timeout=5.0)
+        self.submitted_id = ""
+        self.submitting_id = True
 
     def action_log_out(self) -> None:
         self.refresh_bindings()
