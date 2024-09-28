@@ -6,7 +6,7 @@ from textual.app import App, ComposeResult
 from textual import on
 from textual_countdown import Countdown
 
-from constants import SECONDS_BETWEEN_DISPATCHES
+from constants import SECONDS_BETWEEN_DISPATCHES, SERVER_IP, SERVER_PORT
 from data_structures import TextMessage, Dispatch
 from user_interface import TimeDisplay, DispatchDisplay, TextMessageInput, MainDisplay
 
@@ -19,8 +19,8 @@ class CommunicationDevice(App):
     TITLE = "System for communication with the Earth"
 
     def __init__(self):
-        self.host = "192.168.0.45"
-        self.port = 12345
+        self.host = SERVER_IP
+        self.port = SERVER_PORT
         self.logger = logging.getLogger()
 
         super().__init__()

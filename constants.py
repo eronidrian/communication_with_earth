@@ -8,3 +8,8 @@ SECONDS_BETWEEN_DISPATCHES = 120
 BACKUP_FILE = "backup.pkl"
 CLIENT_LOG = "client.log"
 SERVER_LOG = "server.log"
+
+###
+
+SERVER_IP = "192.168.1.110"
+SERVER_PORT = 12345
