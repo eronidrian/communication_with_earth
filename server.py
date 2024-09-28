@@ -8,7 +8,7 @@ from textual.widgets import Static, Header, Footer, Select, Label, Input, Button
 from textual_countdown import Countdown
 
 from app import CommunicationDevice
-from constants import SECONDS_BETWEEN_DISPATCHES
+from constants import SECONDS_BETWEEN_DISPATCHES, SERVER_LOG
 from data_structures import TextMessage, Dispatch
 from users import USERS
 from user_interface import TimeDisplay, TextMessageInput, DispatchDisplay, MainDisplay
@@ -98,7 +98,7 @@ class Server(CommunicationDevice):
 
 
     def on_mount(self):
-        logging.basicConfig(filename="server.log", encoding="utf-8", level=logging.DEBUG,
+        logging.basicConfig(filename=SERVER_LOG, encoding="utf-8", level=logging.DEBUG,
                             format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
         self.logger.info("Server started")
 
@@ -111,6 +111,9 @@ class Server(CommunicationDevice):
         self.logger.info(f"Client connected from address {self.address}")
 
         self.query_one(Countdown).start(SECONDS_BETWEEN_DISPATCHES)
+
+    def handle_encryption(self, received_dispatch: Dispatch) -> None:
+        received_dispatch.decrypt_all_messages()
 
 
     def create_text_message(self, text_message: TextMessageInput.TextMessageSubmitted) -> TextMessage:

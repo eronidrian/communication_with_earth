@@ -113,7 +113,7 @@ KEY_MAPPINGS = {
     "é" : "0"
 }
 
-def decode_number(number: str) -> int:
+def decode_card_id(number: str) -> int:
     new_number = ""
     for letter in number:
         new_number += KEY_MAPPINGS[letter]

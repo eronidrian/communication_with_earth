@@ -1,3 +1,6 @@
+import pickle
+import os
+
 from textual.app import ComposeResult
 from textual.containers import ScrollableContainer
 from textual.message import Message
@@ -5,7 +8,7 @@ from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Static, Input, Label, Button
 
-from constants import SECONDS_BETWEEN_DISPATCHES, MESSAGE_MAX_LENGTH, SUBJECT_MAX_LENGTH
+from constants import SECONDS_BETWEEN_DISPATCHES, MESSAGE_MAX_LENGTH, SUBJECT_MAX_LENGTH, BACKUP_FILE
 from data_structures import TextMessage, Dispatch, User
 
 
@@ -66,6 +69,7 @@ class DispatchDisplay(Static):
 
     def __init__(self, dispatch: Dispatch, received: bool) -> None:
         self.dispatch = dispatch
+        self.received = received
         super().__init__()
 
         if received:
@@ -75,6 +79,9 @@ class DispatchDisplay(Static):
 
     def get_dispatch(self) -> Dispatch:
         return self.dispatch
+
+    def is_received(self) -> bool:
+        return self.received
 
     def add_new_text_message(self, text_message: TextMessage) -> bool:
         if self.dispatch.add_new_text_messages(text_message):
@@ -92,13 +99,17 @@ class DispatchDisplay(Static):
 
 class MainDisplay(ScrollableContainer):
     """Main display for dispatches"""
-    dispatch_displays = []
 
     COMPONENT_CLASSES = {
         "main_display"
     }
 
+    def __init__(self) -> None:
+        self.dispatch_displays = []
+        super().__init__()
+
     def on_mount(self) -> None:
+        self.restore_from_backup()
         if len(self.dispatch_displays) == 0:
             self.add_dispatch_display(DispatchDisplay(Dispatch(), received=False))
 
@@ -109,6 +120,27 @@ class MainDisplay(ScrollableContainer):
         self.dispatch_displays.append(dispatch_display)
         self.mount(dispatch_display)
         dispatch_display.scroll_visible()
+        self.backup()
+
+    def backup(self):
+        dispatches = []
+        for dispatch_display in self.dispatch_displays:
+            if not dispatch_display.get_dispatch().get_all_text_messages():
+                continue
+            dispatches.append((dispatch_display.get_dispatch(), dispatch_display.is_received()))
+        if dispatches:
+            with open(BACKUP_FILE, "wb") as backup:
+                pickle.dump(dispatches, backup)
+
+    def restore_from_backup(self):
+        if os.stat(BACKUP_FILE).st_size == 0:
+            return
+        with open(BACKUP_FILE, "rb") as backup:
+            dispatches = pickle.load(backup)
+        for dispatch in dispatches:
+            if not dispatch[0].get_all_text_messages():
+                continue
+            self.add_dispatch_display(DispatchDisplay(dispatch[0], dispatch[1]))
 
     def compose(self) -> ComposeResult:
         for dispatch_display in self.dispatch_displays:
@@ -130,7 +162,6 @@ class TextMessageInput(Widget):
             self.subject = subject
             self.text = text
             super().__init__()
-
 
     def on_mount(self) -> None:
         self.query_one("#subject").focus()

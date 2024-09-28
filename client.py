@@ -10,8 +10,8 @@ from textual.widgets import Header, Footer, Input
 from textual_countdown import Countdown
 
 from app import CommunicationDevice
-from constants import SECONDS_BETWEEN_DISPATCHES
-from data_structures import User, TextMessage, Dispatch, decode_number, KEY_MAPPINGS
+from constants import SECONDS_BETWEEN_DISPATCHES, CLIENT_LOG
+from data_structures import User, TextMessage, Dispatch, decode_card_id, KEY_MAPPINGS
 from users import USERS, get_user_by_id
 from user_interface import UserInfoDisplay, TimeDisplay, MainDisplay, TextMessageInput
 
@@ -20,11 +20,11 @@ class ClientMainDisplay(MainDisplay):
 
     def encrypt_all_dispatches_of_user(self, user: User) -> None:
         for dispatch_display in self.dispatch_displays:
-            dispatch_display.dispatch.encrypt_all_messages_of_user(user)
+            dispatch_display.get_dispatch().encrypt_all_messages_of_user(user)
 
     def decrypt_all_dispatches_of_user(self, user: User) -> None:
         for dispatch_display in self.dispatch_displays:
-            dispatch_display.dispatch.decrypt_all_messages_of_user(user)
+            dispatch_display.get_dispatch().decrypt_all_messages_of_user(user)
 
 
 class Client(CommunicationDevice):
@@ -42,7 +42,7 @@ class Client(CommunicationDevice):
         self.submitting_id = False
 
     def on_mount(self):
-        logging.basicConfig(filename="client.log", encoding="utf-8", level=logging.DEBUG,
+        logging.basicConfig(filename=CLIENT_LOG, encoding="utf-8", level=logging.DEBUG,
                             format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
         self.logger.info("Client started")
 
@@ -64,15 +64,21 @@ class Client(CommunicationDevice):
         return super().can_be_message_added_to_dispatch(text_message)
 
     def on_key(self, event) -> None:
-        if len(self.submitted_id) < 7 and event.key in KEY_MAPPINGS.keys() and self.submitting_id:
-            self.submitted_id += event.key
+        #self.logger.info(f"Key: {event.character}")
+        if len(self.submitted_id) < 10 and event.character in KEY_MAPPINGS.keys() and self.submitting_id:
+            self.submitted_id += event.character
+            #self.logger.info(f"Submitted_id: {self.submitted_id}")
+        if event.character not in KEY_MAPPINGS.keys():
+            self.submitting_id = False
 
     def watch_submitted_id(self, submitted_id: str) -> None:
-        if len(submitted_id) == 7:
+        if len(submitted_id) == 10:
             self.handle_login()
 
     def handle_login(self):
-        parsed_id = decode_number(self.submitted_id)
+        parsed_id = decode_card_id(self.submitted_id)
+        self.logger.info(f"Parsed_id: {parsed_id}")
+        self.submitted_id = ""
         user = get_user_by_id(parsed_id)
         if user is None:
             self.logger.info(f"Somebody tried to login with ID {parsed_id}")
@@ -89,7 +95,6 @@ class Client(CommunicationDevice):
         self.logger.info(f"User {self.current_user} logged in")
 
     def action_log_in(self) -> None:
-        # TODO: handle identification cards
         self.notify(title="Provide identification", message=f"Place your identification card on the reader",
                     severity="information", timeout=5.0)
         self.submitted_id = ""
@@ -97,6 +102,10 @@ class Client(CommunicationDevice):
 
     def action_log_out(self) -> None:
         self.refresh_bindings()
+        # TODO: hide bindings
+        if self.current_user == USERS["no_account"]:
+            self.notify(title="Nobody logged in", message="You cannot log out. Nobody is logged in", severity="error", timeout=5.0)
+            return
         if self.current_user.encryption_on:
             self.query_one(ClientMainDisplay).encrypt_all_dispatches_of_user(self.current_user)
             self.query_one(ClientMainDisplay).refresh(recompose=True)
@@ -113,7 +122,7 @@ class Client(CommunicationDevice):
         else:
             super().action_write_message()
 
-    def encrypt_received_dispatch(self, received_dispatch: Dispatch) -> None:
+    def handle_encryption(self, received_dispatch: Dispatch) -> None:
         received_dispatch.encrypt_all_messages()
         if self.current_user.encryption_on:
             received_dispatch.decrypt_all_messages_of_user(self.current_user)

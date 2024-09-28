@@ -72,7 +72,7 @@ class CommunicationDevice(App):
         self.query_one(MainDisplay).add_dispatch_display(received_dispatch_display)
         self.notify(message="You have received a new dispatch.", severity="information", timeout=5.0)
 
-    def encrypt_received_dispatch(self, received_dispatch: Dispatch) -> None:
+    def handle_encryption(self, received_dispatch: Dispatch) -> None:
         pass
 
     def receive_dispatch(self) -> None:
@@ -88,7 +88,7 @@ class CommunicationDevice(App):
         self.logger.info(f"New dispatch was received.\n"
                          f"Dispatch: {received_dispatch}")
 
-        self.encrypt_received_dispatch(received_dispatch)
+        self.handle_encryption(received_dispatch)
 
         self.show_received_dispatch(received_dispatch)
 
