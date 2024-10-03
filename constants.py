@@ -11,5 +11,5 @@ SERVER_LOG = "server.log"
 
 ###
 
-SERVER_IP = "192.168.1.110"
+SERVER_IP = "192.168.0.45"
 SERVER_PORT = 12345

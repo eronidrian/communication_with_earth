@@ -11,7 +11,8 @@ from data_structures import TextMessage, Dispatch
 from user_interface import TimeDisplay, DispatchDisplay, TextMessageInput, MainDisplay
 
 
-class CommunicationDevice(App):
+
+class BaseApp(App):
     CSS_PATH = "stylesheet.tcss"
     BINDINGS = [("w", "write_message", "Write message")]
     ENABLE_COMMAND_PALETTE = False
@@ -51,7 +52,7 @@ class CommunicationDevice(App):
             self.notify(message="Message was successfully added to the dispatch", severity="information", timeout=5.0)
             self.logger.info(f"Message was successfully added to dispatch.\n"
                              f"Message: {new_text_message}")
-        self.query_one(TextMessageInput).remove()
+        self.query(".text_message_input").first().remove()
 
     def send_dispatch(self, dispatch_to_send: Dispatch) -> None:
         try:
@@ -87,6 +88,7 @@ class CommunicationDevice(App):
         received_dispatch = pickle.loads(received_data)
         self.logger.info(f"New dispatch was received.\n"
                          f"Dispatch: {received_dispatch}")
+        self.action_bell()
 
         self.handle_encryption(received_dispatch)
 
@@ -109,9 +111,8 @@ class CommunicationDevice(App):
         self.query_one(Countdown).cancel()
         self.query_one(Countdown).start(SECONDS_BETWEEN_DISPATCHES)
 
-
     def action_write_message(self) -> None:
-        message_input_widget = TextMessageInput()
+        message_input_widget = TextMessageInput(classes="text_message_input")
         self.mount(message_input_widget)
         message_input_widget.scroll_visible()
 

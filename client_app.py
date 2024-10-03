@@ -1,15 +1,14 @@
-import asyncio
 import socket
 import logging
-from venv import logger
+from datetime import datetime
 
-from textual.app import ComposeResult, RenderResult
+from textual import events
+from textual.app import ComposeResult
 from textual.reactive import reactive
-from textual.timer import Timer
-from textual.widgets import Header, Footer, Input
+from textual.widgets import Header, Footer
 from textual_countdown import Countdown
 
-from app import CommunicationDevice
+from app import BaseApp
 from constants import SECONDS_BETWEEN_DISPATCHES, CLIENT_LOG
 from data_structures import User, TextMessage, Dispatch, decode_card_id, KEY_MAPPINGS
 from users import USERS, get_user_by_id
@@ -27,7 +26,7 @@ class ClientMainDisplay(MainDisplay):
             dispatch_display.get_dispatch().decrypt_all_messages_of_user(user)
 
 
-class Client(CommunicationDevice):
+class ClientApp(BaseApp):
 
     BINDINGS = [("i", "log_in", "Log in"), ("o", "log_out", "Log out"), ("w", "write_message", "Write message")]
 
@@ -63,11 +62,9 @@ class Client(CommunicationDevice):
             return False
         return super().can_be_message_added_to_dispatch(text_message)
 
-    def on_key(self, event) -> None:
-        #self.logger.info(f"Key: {event.character}")
+    def on_key(self, event: events.Key) -> None:
         if len(self.submitted_id) < 10 and event.character in KEY_MAPPINGS.keys() and self.submitting_id:
             self.submitted_id += event.character
-            #self.logger.info(f"Submitted_id: {self.submitted_id}")
         if event.character not in KEY_MAPPINGS.keys():
             self.submitting_id = False
 
@@ -128,7 +125,7 @@ class Client(CommunicationDevice):
             received_dispatch.decrypt_all_messages_of_user(self.current_user)
 
     def create_text_message(self, text_message: TextMessageInput.TextMessageSubmitted) -> TextMessage:
-        return TextMessage(self.current_user, USERS["earth"], text_message.subject, text_message.text)
+        return TextMessage(self.current_user, USERS["earth"], text_message.subject, text_message.text, datetime.now().strftime("%H:%M:%S"))
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -140,5 +137,5 @@ class Client(CommunicationDevice):
 
 
 if __name__ == "__main__":
-    app = Client()
+    app = ClientApp()
     app.run()

@@ -41,6 +41,14 @@ Label {
     background: $primary-lighten-1;
 }
 
+.message_time {
+    width: 8;
+}
+
+.message_header {
+    height: 3;
+}
+
 
 
 

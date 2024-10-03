@@ -1,12 +1,13 @@
 import pickle
 import os
 
+from textual import events
 from textual.app import ComposeResult
-from textual.containers import ScrollableContainer
+from textual.containers import ScrollableContainer, Horizontal, Vertical
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Static, Input, Label, Button
+from textual.widgets import Static, Input, Label, Button, Rule
 
 from constants import SECONDS_BETWEEN_DISPATCHES, MESSAGE_MAX_LENGTH, SUBJECT_MAX_LENGTH, BACKUP_FILE
 from data_structures import TextMessage, Dispatch, User
@@ -62,9 +63,13 @@ class DispatchDisplay(Static):
             super().__init__()
 
         def compose(self) -> ComposeResult:
-            yield Static(f"Sender: {self.text_message.sender.user_id}")
-            yield Static(f"Recipient: {self.text_message.recipient.user_id}")
-            yield Static(f"Subject: {self.text_message.subject}\n")
+            with Horizontal(classes="message_header"):
+                with Vertical():
+                    yield Static(f"Sender: {self.text_message.sender.user_id}")
+                    yield Static(f"Recipient: {self.text_message.recipient.user_id}")
+                    yield Static(f"Subject: {self.text_message.subject}\n")
+                yield Static(f"{self.text_message.time_added}", classes="message_time")
+            yield Rule()
             yield Static(self.text_message.text)
 
     def __init__(self, dispatch: Dispatch, received: bool) -> None:
@@ -108,13 +113,17 @@ class MainDisplay(ScrollableContainer):
         self.dispatch_displays = []
         super().__init__()
 
-    def on_mount(self) -> None:
+    def on_mount(self, event: events.Mount) -> None:
         self.restore_from_backup()
-        if len(self.dispatch_displays) == 0:
-            self.add_dispatch_display(DispatchDisplay(Dispatch(), received=False))
+        self.add_dispatch_display(DispatchDisplay(Dispatch(), received=False))
+
 
     def get_last_dispatch_display(self) -> DispatchDisplay:
         return self.dispatch_displays[-1]
+
+    def create_dispatch_display(self, dispatch: Dispatch, received: bool) -> DispatchDisplay:
+        return DispatchDisplay(dispatch, received)
+
 
     def add_dispatch_display(self, dispatch_display: DispatchDisplay) -> None:
         self.dispatch_displays.append(dispatch_display)
@@ -133,14 +142,15 @@ class MainDisplay(ScrollableContainer):
                 pickle.dump(dispatches, backup)
 
     def restore_from_backup(self):
-        if os.stat(BACKUP_FILE).st_size == 0:
+        if os.stat(BACKUP_FILE).st_size < 50:
             return
         with open(BACKUP_FILE, "rb") as backup:
             dispatches = pickle.load(backup)
         for dispatch in dispatches:
             if not dispatch[0].get_all_text_messages():
                 continue
-            self.add_dispatch_display(DispatchDisplay(dispatch[0], dispatch[1]))
+            dispatch_display = self.create_dispatch_display(dispatch[0], dispatch[1])
+            self.add_dispatch_display(dispatch_display)
 
     def compose(self) -> ComposeResult:
         for dispatch_display in self.dispatch_displays:
@@ -188,7 +198,7 @@ class TextMessageInput(Widget):
             return False
         return True
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    def send_button_pressed(self) -> None:
         if not self.validate_text_message():
             return
 
@@ -197,15 +207,28 @@ class TextMessageInput(Widget):
 
         self.post_message(self.TextMessageSubmitted(None, None, subject, text))
 
+    def cancel_button_pressed(self) -> None:
+        self.remove()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "send":
+            self.send_button_pressed()
+        elif event.button.id == "cancel":
+            self.cancel_button_pressed()
+
+        event.prevent_default()
+
     def on_input_submitted(self, message: Input.Submitted) -> None:
         if message.input.id == "subject":
             self.query_one("#text").focus()
         if message.input.id == "text":
-            self.query_one("#send").action_press()
+            self.send_button_pressed()
 
     def compose(self) -> ComposeResult:
         yield Label("Subject:")
-        yield Input(id="subject")
+        yield Input(id="subject", placeholder="Specify message recipient or subject")
         yield Label("Text:")
-        yield Input(id="text")
-        yield Button(label="Send", variant="success", id="send")
+        yield Input(id="text", placeholder="Write message text")
+        with Horizontal():
+            yield Button(label="Send", variant="success", id="send")
+            yield Button(label="Cancel", variant="error", id="cancel")

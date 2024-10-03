@@ -15,7 +15,8 @@ class User:
 class TextMessage:
     encrypted = False
 
-    def __init__(self, sender: User, recipient: User, subject: str, text: str) -> None:
+    def __init__(self, sender: User, recipient: User, subject: str, text: str, time_added: str) -> None:
+        self.time_added = time_added
         self.sender = sender
         self.recipient = recipient
         self.subject = subject
@@ -30,7 +31,8 @@ class TextMessage:
         self.encrypted = False
 
     def __str__(self):
-        return (f"Sender: {self.sender}\n"
+        return (f"Time added: {self.time_added}\n"
+                f"Sender: {self.sender}\n"
                 f"Recipient: {self.recipient}\n"
                 f"Subject: {self.subject}\n"
                 f"Text: {self.text}\n")

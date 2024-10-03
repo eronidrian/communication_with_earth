@@ -1,26 +1,32 @@
 import socket
-import pickle
 import logging
+from datetime import datetime
 
-from textual import on
-from textual.app import ComposeResult, App
-from textual.widgets import Static, Header, Footer, Select, Label, Input, Button
+from textual import events
+from textual.app import ComposeResult
+from textual.containers import Horizontal, Vertical
+from textual.widgets import Static, Header, Footer, Select, Label, Input, Button, Rule
 from textual_countdown import Countdown
 
-from app import CommunicationDevice
+from app import BaseApp
 from constants import SECONDS_BETWEEN_DISPATCHES, SERVER_LOG
 from data_structures import TextMessage, Dispatch
 from users import USERS
 from user_interface import TimeDisplay, TextMessageInput, DispatchDisplay, MainDisplay
 
-class ServerDispatchDisplay(DispatchDisplay):
 
+class ServerDispatchDisplay(DispatchDisplay):
     class ServerTextMessageDisplay(DispatchDisplay.TextMessageDisplay):
 
         def compose(self) -> ComposeResult:
-            yield Static(f"Sender: {self.text_message.sender.name} ({self.text_message.sender.user_id})")
-            yield Static(f"Recipient: {self.text_message.recipient.name} ({self.text_message.recipient.user_id})")
-            yield Static(f"Subject: {self.text_message.subject}\n")
+            with Horizontal(classes="message_header"):
+                with Vertical():
+                    yield Static(f"Sender: {self.text_message.sender.name} ({self.text_message.sender.user_id})")
+                    yield Static(
+                        f"Recipient: {self.text_message.recipient.name} ({self.text_message.recipient.user_id})")
+                    yield Static(f"Subject: {self.text_message.subject}\n")
+                yield Static(f"{self.text_message.time_added}", classes="message_time")
+            yield Rule()
             yield Static(self.text_message.text)
 
     def add_new_text_message(self, text_message: TextMessage) -> bool:
@@ -39,14 +45,13 @@ class ServerDispatchDisplay(DispatchDisplay):
 
 class ServerMainDisplay(MainDisplay):
 
+    def on_mount(self, event: events.Mount) -> None:
+        self.restore_from_backup()
+        self.add_dispatch_display(ServerDispatchDisplay(Dispatch(), received=False))
+        event.prevent_default()
 
-    COMPONENT_CLASSES = {
-        "main_display"
-    }
-
-    def on_mount(self) -> None:
-        if len(self.dispatch_displays) == 0:
-            self.add_dispatch_display(ServerDispatchDisplay(Dispatch(), received=False))
+    def create_dispatch_display(self, dispatch: Dispatch, received: bool) -> ServerDispatchDisplay:
+        return ServerDispatchDisplay(dispatch, received)
 
 
 class ServerTextMessageInput(TextMessageInput):
@@ -61,7 +66,7 @@ class ServerTextMessageInput(TextMessageInput):
 
         return super().validate_text_message()
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    def send_button_pressed(self) -> None:
         if not self.server_validate_text_message():
             return
 
@@ -70,8 +75,6 @@ class ServerTextMessageInput(TextMessageInput):
         recipient = self.query_one("#recipient").value
 
         self.post_message(self.TextMessageSubmitted(None, recipient, subject, text))
-
-        event.prevent_default()
 
     def on_input_submitted(self, message: Input.Submitted) -> None:
         if message.input.id == "subject":
@@ -86,16 +89,16 @@ class ServerTextMessageInput(TextMessageInput):
         yield Input(id="text")
         yield Label("Recipient:")
         yield Select(id="recipient", options=[(USERS[user].name, user) for user in USERS])
-        yield Button(label="Send", variant="success")
+        with Horizontal():
+            yield Button(label="Send", variant="success", id="send")
+            yield Button(label="Cancel", variant="error", id="cancel")
 
 
-class Server(CommunicationDevice):
-
+class ServerApp(BaseApp):
     peer = None
     client = None
     address = None
     s = None
-
 
     def on_mount(self):
         logging.basicConfig(filename=SERVER_LOG, encoding="utf-8", level=logging.DEBUG,
@@ -103,7 +106,7 @@ class Server(CommunicationDevice):
         self.logger.info("Server started")
 
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.bind(("192.168.0.45", self.port))
+        self.s.bind((self.host, self.port))
         self.logger.info(f"Socket is bound to {self.host} on port {self.port}")
 
         self.s.listen(5)
@@ -115,13 +118,12 @@ class Server(CommunicationDevice):
     def handle_encryption(self, received_dispatch: Dispatch) -> None:
         received_dispatch.decrypt_all_messages()
 
-
     def create_text_message(self, text_message: TextMessageInput.TextMessageSubmitted) -> TextMessage:
         return TextMessage(USERS["earth"], USERS[text_message.recipient], text_message.subject,
-                                       text_message.text)
+                           text_message.text, datetime.now().strftime("%H:%M:%S"))
 
     def action_write_message(self) -> None:
-        message_input_widget = ServerTextMessageInput()
+        message_input_widget = ServerTextMessageInput(classes="text_message_input")
         self.mount(message_input_widget)
         message_input_widget.scroll_visible()
 
@@ -137,5 +139,5 @@ class Server(CommunicationDevice):
 
 
 if __name__ == "__main__":
-    app = Server()
+    app = ServerApp()
     app.run()
