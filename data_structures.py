@@ -12,8 +12,10 @@ class User:
     def __str__(self):
         return f"{self.name} ({self.user_id})"
 
+    def __eq__(self, other):
+        return self.user_id == other.user_id
+
 class TextMessage:
-    encrypted = False
 
     def __init__(self, sender: User, recipient: User, subject: str, text: str, time_added: str) -> None:
         self.time_added = time_added
@@ -21,14 +23,19 @@ class TextMessage:
         self.recipient = recipient
         self.subject = subject
         self.text = text
+        self.is_encrypted = False
 
     def encrypt(self) -> None:
+        if self.is_encrypted:
+            return None
         self.text = base64.b64encode(self.text.encode()).decode()
-        self.encrypted = True
+        self.is_encrypted = True
 
     def decrypt(self) -> None:
+        if not self.is_encrypted:
+            return None
         self.text = base64.b64decode(self.text).decode()
-        self.encrypted = False
+        self.is_encrypted = False
 
     def __str__(self):
         return (f"Time added: {self.time_added}\n"
@@ -62,35 +69,27 @@ class Dispatch:
 
     def encrypt_all_messages(self) -> None:
         for text_message in self.text_messages:
-            if text_message.encrypted:
-                continue
             if text_message.recipient.encryption_on or text_message.sender.encryption_on:
                 text_message.encrypt()
 
     def encrypt_all_messages_of_user(self, user: User) -> None:
         for text_message in self.text_messages:
-            if text_message.encrypted:
-                continue
-            if text_message.sender.user_id == user.user_id or text_message.recipient.user_id == user.user_id:
+            if text_message.sender == user or text_message.recipient == user:
                 text_message.encrypt()
 
     def decrypt_all_messages(self) -> None:
         for text_message in self.text_messages:
-            if not text_message.encrypted:
-                continue
             text_message.decrypt()
 
     def decrypt_all_messages_of_user(self, user: User) -> None:
         for text_message in self.text_messages:
-            if not text_message.encrypted:
-                continue
-            if text_message.sender.user_id == user.user_id or text_message.recipient.user_id == user.user_id:
+            if text_message.sender == user or text_message.recipient == user:
                 text_message.decrypt()
 
     def count_messages_by_sender(self, sender: User):
         count = 0
         for text_message in self.text_messages:
-            if text_message.sender.user_id == sender.user_id:
+            if text_message.sender == sender:
                 count += 1
 
         return count
