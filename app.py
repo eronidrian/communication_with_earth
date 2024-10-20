@@ -1,16 +1,29 @@
 import pickle
 import logging
+import socket
 from abc import abstractmethod
 
 from textual.app import App, ComposeResult
 from textual import on
 from textual_countdown import Countdown
 
-from constants import SECONDS_BETWEEN_DISPATCHES, SERVER_IP, SERVER_PORT
+from constants import SECONDS_BETWEEN_DISPATCHES, SERVER_IP, SERVER_PORT, SECONDS_BETWEEN_CONNECTION_CHECKS
 from data_structures import TextMessage, Dispatch
 from user_interface import TimeDisplay, DispatchDisplay, TextMessageInput, MainDisplay
 
-
+def is_socket_closed(sock: socket.socket) -> bool:
+    try:
+        # this will try to read bytes without blocking and also without removing them from buffer (peek only)
+        data = sock.recv(16, socket.MSG_DONTWAIT | socket.MSG_PEEK)
+        if len(data) == 0:
+            return True
+    except BlockingIOError:
+        return False  # socket is open and reading from it would block
+    except ConnectionResetError:
+        return True  # socket was closed for some other reason
+    except Exception:
+        return False
+    return False
 
 class BaseApp(App):
     CSS_PATH = "stylesheet.tcss"
@@ -19,16 +32,18 @@ class BaseApp(App):
 
     TITLE = "System for communication with the Earth"
 
+
     def __init__(self):
+        self.connection_check_timer = None
         self.host = SERVER_IP
         self.port = SERVER_PORT
         self.logger = logging.getLogger()
 
         super().__init__()
-
-    @abstractmethod
+    
+    
     def on_mount(self):
-        pass
+        self.connection_check_timer = self.set_interval(SECONDS_BETWEEN_CONNECTION_CHECKS, self.check_connection)
 
     def can_be_message_added_to_dispatch(self, text_message: TextMessage) -> bool:
         if self.query_one(MainDisplay).get_last_dispatch_display().get_dispatch().is_full():
@@ -53,6 +68,12 @@ class BaseApp(App):
             self.logger.info(f"Message was successfully added to dispatch.\n"
                              f"Message: {new_text_message}")
         self.query(".text_message_input").first().remove()
+
+    def check_connection(self):
+        if is_socket_closed(self.peer):
+            self.logger.error(f"Connection was lost.")
+            self.notify(title="Connection lost", message="Connection was lost. Inform administrator about the problem.", severity="error", timeout=10.0 )
+   
 
     def send_dispatch(self, dispatch_to_send: Dispatch) -> None:
         try:
