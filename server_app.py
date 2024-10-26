@@ -10,48 +10,25 @@ from textual_countdown import Countdown
 
 from app import BaseApp
 from constants import SECONDS_BETWEEN_DISPATCHES, SERVER_LOG
-from data_structures import TextMessage, Dispatch
+from data_structures import TextMessage, Dispatch, User
 from users import USERS
-from user_interface import TimeDisplay, TextMessageInput, DispatchDisplay, MainDisplay
+from user_interface import TimeDisplay, TextMessageInput, DispatchDisplay, MainDisplay, TextMessageDisplay
 
+
+class ServerTextMessageDisplay(TextMessageDisplay):
+
+    def display_user(self, user: User):
+        return f"{user.name} ({user.user_id})"
 
 class ServerDispatchDisplay(DispatchDisplay):
-    class ServerTextMessageDisplay(DispatchDisplay.TextMessageDisplay):
 
-        def compose(self) -> ComposeResult:
-            with Horizontal(classes="message_header"):
-                with Vertical():
-                    yield Static(f"Sender: {self.text_message.sender.name} ({self.text_message.sender.user_id})")
-                    yield Static(
-                        f"Recipient: {self.text_message.recipient.name} ({self.text_message.recipient.user_id})")
-                    yield Static(f"Subject: {self.text_message.subject}\n")
-                yield Static(f"{self.text_message.time_added}", classes="message_time")
-            yield Rule()
-            yield Static(self.text_message.text)
-
-    def add_new_text_message(self, text_message: TextMessage) -> bool:
-        if self.dispatch.add_new_text_messages(text_message):
-            text_message_display = self.ServerTextMessageDisplay(text_message)
-            self.mount(text_message_display)
-            text_message_display.scroll_visible()
-            return True
-        else:
-            return False
-
-    def compose(self) -> ComposeResult:
-        for text_message in self.dispatch.get_all_text_messages():
-            yield self.ServerTextMessageDisplay(text_message)
+    text_message_display_class = ServerTextMessageDisplay
 
 
 class ServerMainDisplay(MainDisplay):
 
-    def on_mount(self, event: events.Mount) -> None:
-        self.restore_from_backup()
-        self.add_dispatch_display(ServerDispatchDisplay(Dispatch(), received=False))
-        event.prevent_default()
+    dispatch_display_class = ServerDispatchDisplay
 
-    def create_dispatch_display(self, dispatch: Dispatch, received: bool) -> ServerDispatchDisplay:
-        return ServerDispatchDisplay(dispatch, received)
 
 
 class ServerTextMessageInput(TextMessageInput):
@@ -122,13 +99,13 @@ class ServerApp(BaseApp):
         return TextMessage(USERS["earth"], USERS[text_message.recipient], text_message.subject,
                            text_message.text, datetime.now().strftime("%H:%M:%S"))
 
+    def create_dispatch_display(self, dispatch: Dispatch, received: bool) -> DispatchDisplay:
+        return ServerDispatchDisplay(dispatch, received=received)
+
     def action_write_message(self) -> None:
         message_input_widget = ServerTextMessageInput(classes="text_message_input")
         self.mount(message_input_widget)
         message_input_widget.scroll_visible()
-
-    def create_dispatch_display(self, dispatch: Dispatch, received: bool) -> DispatchDisplay:
-        return ServerDispatchDisplay(dispatch, received=received)
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)

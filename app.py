@@ -46,7 +46,7 @@ class BaseApp(App):
         self.connection_check_timer = self.set_interval(SECONDS_BETWEEN_CONNECTION_CHECKS, self.check_connection)
 
     def can_be_message_added_to_dispatch(self, text_message: TextMessage) -> bool:
-        if self.query_one(MainDisplay).get_last_dispatch_display().get_dispatch().is_full():
+        if self.query_one(MainDisplay).get_last_dispatch_display().dispatch.is_full:
             self.notify(message="The dispatch is full. Wait for the next dispatch.", title="Full dispatch",
                         severity="error", timeout=5.0)
             self.logger.warning(f"User tried to add message to dispatch but reached dispatch limit.\n"
@@ -121,7 +121,7 @@ class BaseApp(App):
 
     @on(TimeDisplay.TimeToSendDispatch)
     def handle_incoming_and_outgoing_dispatch(self) -> None:
-        dispatch_to_send = self.query_one(MainDisplay).get_last_dispatch_display().get_dispatch()
+        dispatch_to_send = self.query_one(MainDisplay).get_last_dispatch_display().dispatch
         self.send_dispatch(dispatch_to_send)
 
         self.receive_dispatch()

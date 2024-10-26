@@ -61,9 +61,7 @@ class Dispatch:
             self.text_messages.append(text_message)
         return True
 
-    def get_all_text_messages(self) -> list[TextMessage]:
-        return self.text_messages
-
+    @property
     def is_full(self):
         return len(self.text_messages) == self.max_text_messages
 

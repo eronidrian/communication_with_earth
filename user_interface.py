@@ -44,6 +44,31 @@ class TimeDisplay(Static):
         self.time_left = self.seconds_between_dispatches
 
 
+class TextMessageDisplay(Static):
+    """Display single message"""
+
+    COMPONENT_CLASSES = {
+        "text_message_display"
+    }
+
+    def __init__(self, text_message: TextMessage) -> None:
+        self.text_message = text_message
+        super().__init__()
+
+    def display_user(self, user: User):
+        return f"{user.user_id}"
+
+    def compose(self) -> ComposeResult:
+        with Horizontal(classes="message_header"):
+            with Vertical():
+                yield Static(f"Sender: {self.display_user(self.text_message.sender)}")
+                yield Static(f"Recipient: {self.display_user(self.text_message.recipient)}")
+                yield Static(f"Subject: {self.text_message.subject}\n")
+            yield Static(f"{self.text_message.time_added}", classes="message_time")
+        yield Rule()
+        yield Static(self.text_message.text)
+
+
 class DispatchDisplay(Static):
     """Display whole dispatch"""
 
@@ -51,30 +76,11 @@ class DispatchDisplay(Static):
         "dispatch_display"
     }
 
-    class TextMessageDisplay(Static):
-        """Display single message"""
-
-        COMPONENT_CLASSES = {
-            "text_message_display"
-        }
-
-        def __init__(self, text_message: TextMessage) -> None:
-            self.text_message = text_message
-            super().__init__()
-
-        def compose(self) -> ComposeResult:
-            with Horizontal(classes="message_header"):
-                with Vertical():
-                    yield Static(f"Sender: {self.text_message.sender.user_id}")
-                    yield Static(f"Recipient: {self.text_message.recipient.user_id}")
-                    yield Static(f"Subject: {self.text_message.subject}\n")
-                yield Static(f"{self.text_message.time_added}", classes="message_time")
-            yield Rule()
-            yield Static(self.text_message.text)
+    text_message_display_class = TextMessageDisplay
 
     def __init__(self, dispatch: Dispatch, received: bool) -> None:
         self.dispatch = dispatch
-        self.received = received
+        self.is_received = received
         super().__init__()
 
         if received:
@@ -82,15 +88,9 @@ class DispatchDisplay(Static):
         else:
             self.add_class("sent")
 
-    def get_dispatch(self) -> Dispatch:
-        return self.dispatch
-
-    def is_received(self) -> bool:
-        return self.received
-
     def add_new_text_message(self, text_message: TextMessage) -> bool:
         if self.dispatch.add_new_text_messages(text_message):
-            text_message_display = self.TextMessageDisplay(text_message)
+            text_message_display = self.text_message_display_class(text_message)
             self.mount(text_message_display)
             text_message_display.scroll_visible()
             return True
@@ -98,8 +98,8 @@ class DispatchDisplay(Static):
             return False
 
     def compose(self) -> ComposeResult:
-        for text_message in self.dispatch.get_all_text_messages():
-            yield self.TextMessageDisplay(text_message)
+        for text_message in self.dispatch.text_messages:
+            yield self.text_message_display_class(text_message)
 
 
 class MainDisplay(ScrollableContainer):
@@ -109,21 +109,21 @@ class MainDisplay(ScrollableContainer):
         "main_display"
     }
 
+    dispatch_display_class = DispatchDisplay
+
     def __init__(self) -> None:
-        self.dispatch_displays = []
+        self.dispatch_displays: list[DispatchDisplay] = []
         super().__init__()
 
     def on_mount(self, event: events.Mount) -> None:
         self.restore_from_backup()
-        self.add_dispatch_display(DispatchDisplay(Dispatch(), received=False))
-
+        self.add_dispatch_display(self.dispatch_display_class(Dispatch(), received=False))
 
     def get_last_dispatch_display(self) -> DispatchDisplay:
         return self.dispatch_displays[-1]
 
     def create_dispatch_display(self, dispatch: Dispatch, received: bool) -> DispatchDisplay:
-        return DispatchDisplay(dispatch, received)
-
+        return self.dispatch_display_class(dispatch, received)
 
     def add_dispatch_display(self, dispatch_display: DispatchDisplay) -> None:
         self.dispatch_displays.append(dispatch_display)
@@ -134,9 +134,9 @@ class MainDisplay(ScrollableContainer):
     def backup(self):
         dispatches = []
         for dispatch_display in self.dispatch_displays:
-            if not dispatch_display.get_dispatch().get_all_text_messages():
+            if not dispatch_display.dispatch.text_messages:
                 continue
-            dispatches.append((dispatch_display.get_dispatch(), dispatch_display.is_received()))
+            dispatches.append((dispatch_display.dispatch, dispatch_display.is_received))
         if dispatches:
             with open(BACKUP_FILE, "wb") as backup:
                 pickle.dump(dispatches, backup)
@@ -147,7 +147,7 @@ class MainDisplay(ScrollableContainer):
         with open(BACKUP_FILE, "rb") as backup:
             dispatches = pickle.load(backup)
         for dispatch in dispatches:
-            if not dispatch[0].get_all_text_messages():
+            if not dispatch[0].text_messages:
                 continue
             dispatch_display = self.create_dispatch_display(dispatch[0], dispatch[1])
             self.add_dispatch_display(dispatch_display)

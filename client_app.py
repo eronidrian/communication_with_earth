@@ -19,11 +19,11 @@ class ClientMainDisplay(MainDisplay):
 
     def encrypt_all_dispatches_of_user(self, user: User) -> None:
         for dispatch_display in self.dispatch_displays:
-            dispatch_display.get_dispatch().encrypt_all_messages_of_user(user)
+            dispatch_display.dispatch.encrypt_all_messages_of_user(user)
 
     def decrypt_all_dispatches_of_user(self, user: User) -> None:
         for dispatch_display in self.dispatch_displays:
-            dispatch_display.get_dispatch().decrypt_all_messages_of_user(user)
+            dispatch_display.dispatch.decrypt_all_messages_of_user(user)
 
 
 class ClientApp(BaseApp):
@@ -51,7 +51,7 @@ class ClientApp(BaseApp):
         self.query_one(Countdown).start(SECONDS_BETWEEN_DISPATCHES)
 
     def can_be_message_added_to_dispatch(self, text_message: TextMessage) -> bool:
-        if self.query_one(ClientMainDisplay).get_last_dispatch_display().get_dispatch().count_messages_by_sender(
+        if self.query_one(ClientMainDisplay).get_last_dispatch_display().dispatch.count_messages_by_sender(
                 self.current_user) == self.current_user.text_message_limit:
             self.notify(
                 message="You have reached the limit of messages available for your account. Wait for the next dispatch.",
