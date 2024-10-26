@@ -162,3 +162,5 @@ cython_debug/
 .idea/
 
 backup.pkl
+client.log
+server.log

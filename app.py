@@ -47,7 +47,7 @@ class BaseApp(App):
 
     def can_be_message_added_to_dispatch(self, text_message: TextMessage) -> bool:
         if self.query_one(MainDisplay).get_last_dispatch_display().dispatch.is_full:
-            self.notify(message="The dispatch is full. Wait for the next dispatch.", title="Full dispatch",
+            self.notify(title="Full dispatch", message="The dispatch is full. Wait for the next dispatch.",
                         severity="error", timeout=5.0)
             self.logger.warning(f"User tried to add message to dispatch but reached dispatch limit.\n"
                              f"Message: {text_message}")
@@ -64,7 +64,7 @@ class BaseApp(App):
 
         if self.can_be_message_added_to_dispatch(new_text_message):
             self.query_one(MainDisplay).get_last_dispatch_display().add_new_text_message(new_text_message)
-            self.notify(message="Message was successfully added to the dispatch", severity="information", timeout=5.0)
+            self.notify(title="Message added", message="Message was successfully added to the dispatch", severity="information", timeout=5.0)
             self.logger.info(f"Message was successfully added to dispatch.\n"
                              f"Message: {new_text_message}")
         self.query(".text_message_input").first().remove()
@@ -92,7 +92,7 @@ class BaseApp(App):
     def show_received_dispatch(self, received_dispatch):
         received_dispatch_display = self.create_dispatch_display(received_dispatch, received=True)
         self.query_one(MainDisplay).add_dispatch_display(received_dispatch_display)
-        self.notify(message="You have received a new dispatch.", severity="information", timeout=5.0)
+        self.notify(title="New dispatch", message="You have received a new dispatch.", severity="information", timeout=5.0)
 
     def handle_encryption(self, received_dispatch: Dispatch) -> None:
         pass

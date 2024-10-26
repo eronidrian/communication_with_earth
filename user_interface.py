@@ -186,14 +186,16 @@ class TextMessageInput(Widget):
             self.notify(title="Empty text", message="The text of the message cannot be empty. Add some text.",
                         severity="error", timeout=5.0)
             return False
-        if len(self.query_one("#subject").value) > SUBJECT_MAX_LENGTH:
+        subject_len = len(self.query_one("#subject").value)
+        if subject_len > SUBJECT_MAX_LENGTH:
             self.notify(title="Subject too long",
-                        message=f"The subject of the message is too long. Maximum length is {SUBJECT_MAX_LENGTH} characters.",
+                        message=f"The message subject is {subject_len} long. Maximum length is {SUBJECT_MAX_LENGTH} characters.",
                         severity="error", timeout=5.0)
             return False
-        if len(self.query_one("#text").value) > MESSAGE_MAX_LENGTH:
+        text_len = len(self.query_one("#text").value)
+        if text_len > MESSAGE_MAX_LENGTH:
             self.notify(title="Text too long",
-                        message=f"The text of the message is too long. Maximum length is {MESSAGE_MAX_LENGTH} characters.",
+                        message=f"The message text is {text_len} long. Maximum length is {MESSAGE_MAX_LENGTH} characters.",
                         severity="error", timeout=5.0)
             return False
         return True

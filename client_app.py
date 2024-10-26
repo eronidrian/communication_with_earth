@@ -27,13 +27,11 @@ class ClientMainDisplay(MainDisplay):
 
 
 class ClientApp(BaseApp):
-
     BINDINGS = [("i", "log_in", "Log in"), ("o", "log_out", "Log out"), ("w", "write_message", "Write message")]
 
     peer = socket.socket()
 
     submitted_id = reactive("")
-
 
     def __init__(self):
         super().__init__()
@@ -54,7 +52,9 @@ class ClientApp(BaseApp):
         if self.query_one(ClientMainDisplay).get_last_dispatch_display().dispatch.count_messages_by_sender(
                 self.current_user) == self.current_user.text_message_limit:
             self.notify(
-                message="You have reached the limit of messages available for your account. Wait for the next dispatch.",
+                title="Message limit reached",
+                message=f"You cannot add more messages to this dispatch. Your limit is "
+                        f"{self.current_user.text_message_limit} messages. Wait for the next dispatch.",
                 severity="error", timeout=5.0)
             self.query_one(TextMessageInput).remove()
             self.logger.warning(f"User tried to add message to dispatch but reached his message limit.\n"
@@ -79,7 +79,8 @@ class ClientApp(BaseApp):
         user = get_user_by_id(parsed_id)
         if user is None:
             self.logger.info(f"Somebody tried to login with ID {parsed_id}")
-            self.notify(title="Invalid card", message="The card is invalid. Contact administrator", severity="error", timeout=10.0)
+            self.notify(title="Invalid card", message="Your card is invalid. Inform administrator if the issue persists.", severity="error",
+                        timeout=10.0)
             return
         self.current_user = user
         if self.current_user.encryption_on:
@@ -101,7 +102,8 @@ class ClientApp(BaseApp):
         self.refresh_bindings()
         # TODO: hide bindings
         if self.current_user == USERS["no_account"]:
-            self.notify(title="Nobody logged in", message="You cannot log out. Nobody is logged in", severity="error", timeout=5.0)
+            self.notify(title="Nobody logged in", message="You cannot log out. Nobody is logged in", severity="error",
+                        timeout=5.0)
             return
         if self.current_user.encryption_on:
             self.query_one(ClientMainDisplay).encrypt_all_dispatches_of_user(self.current_user)
@@ -114,7 +116,7 @@ class ClientApp(BaseApp):
 
     def action_write_message(self) -> None:
         if self.current_user.user_id == 0:
-            self.notify(message="You are not logged in. Log in to write messages.", severity="error", timeout=5.0)
+            self.notify(title="Invalid permission", message="You are not logged in. Log in to write messages.", severity="error", timeout=5.0)
             self.logger.warning("Somebody tried to write message without logging in")
         else:
             super().action_write_message()
@@ -125,7 +127,8 @@ class ClientApp(BaseApp):
             received_dispatch.decrypt_all_messages_of_user(self.current_user)
 
     def create_text_message(self, text_message: TextMessageInput.TextMessageSubmitted) -> TextMessage:
-        return TextMessage(self.current_user, USERS["earth"], text_message.subject, text_message.text, datetime.now().strftime("%H:%M:%S"))
+        return TextMessage(self.current_user, USERS["earth"], text_message.subject, text_message.text,
+                           datetime.now().strftime("%H:%M:%S"))
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
