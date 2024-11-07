@@ -10,6 +10,7 @@ USERS = {
     "tim_coreway": User("Tim Coreway", 7067089, False, 1),
     "philip_grigore": User("Philip Grigore", 8200492, True, 2),
     "sin_le_pham": User("Sin Le Pham", 8228611, False, 1),
+    "viktor_kovacevic": User("Viktor Kovačević", 1234567, False, 0)
 }
 
 def get_user_by_id(user_id: int) -> User | None:

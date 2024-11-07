@@ -31,10 +31,12 @@ class ClientApp(BaseApp):
 
     peer = socket.socket()
 
+    submitted_id = reactive("")
+
     def __init__(self):
         super().__init__()
         self.current_user = USERS["no_account"]
-        self.submitted_id = ""
+        self.submitting_id = False
 
     def on_mount(self):
         logging.basicConfig(filename=CLIENT_LOG, encoding="utf-8", level=logging.DEBUG,
@@ -61,18 +63,19 @@ class ClientApp(BaseApp):
         return super().can_be_message_added_to_dispatch(text_message)
 
     def on_key(self, event: events.Key) -> None:
-        if len(self.submitted_id) < 10 and event.character in KEY_MAPPINGS.keys() and self.current_user == USERS["no_account"]:
-            self.submitted_id += event.character.lower()
-            if len(self.submitted_id) == 10:
-                self.handle_login()
+        if len(self.submitted_id) < 10 and event.character in KEY_MAPPINGS.keys() and self.submitting_id:
+            self.submitted_id += event.character
         if event.character not in KEY_MAPPINGS.keys():
-            self.submitted_id = ""
+            self.submitting_id = False
+
+    def watch_submitted_id(self, submitted_id: str) -> None:
+        if len(submitted_id) == 10:
+            self.handle_login()
 
     def handle_login(self):
         parsed_id = decode_card_id(self.submitted_id)
         self.logger.info(f"Parsed_id: {parsed_id}")
         self.submitted_id = ""
-
         user = get_user_by_id(parsed_id)
         if user is None:
             self.logger.info(f"Somebody tried to login with ID {parsed_id}")
@@ -80,19 +83,24 @@ class ClientApp(BaseApp):
                         timeout=10.0)
             return
         self.current_user = user
-
         if self.current_user.encryption_on:
             self.query_one(ClientMainDisplay).decrypt_all_dispatches_of_user(self.current_user)
             self.query_one(ClientMainDisplay).refresh(recompose=True)
-
         self.query_one(UserInfoDisplay).update(f"{self.current_user.user_id} is logged in")
         self.notify(title=f"Welcome", message=f"You successfully logged in as {self.current_user.user_id}",
                     severity="information",
                     timeout=5.0)
         self.logger.info(f"User {self.current_user} logged in")
 
+    def action_log_in(self) -> None:
+        self.notify(title="Provide identification", message=f"Place your identification card on the reader",
+                    severity="information", timeout=5.0)
+        self.submitted_id = ""
+        self.submitting_id = True
+
     def action_log_out(self) -> None:
         self.refresh_bindings()
+        # TODO: hide bindings
         if self.current_user == USERS["no_account"]:
             self.notify(title="Nobody logged in", message="You cannot log out. Nobody is logged in", severity="error",
                         timeout=5.0)
