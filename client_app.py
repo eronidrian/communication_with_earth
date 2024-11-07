@@ -27,7 +27,7 @@ class ClientMainDisplay(MainDisplay):
 
 
 class ClientApp(BaseApp):
-    BINDINGS = [("o", "log_out", "Log out"), ("w", "write_message", "Write message")]
+    BINDINGS = [("o,O", "log_out", "Log out"), ("w,W", "write_message", "Write message")]
 
     peer = socket.socket()
 
