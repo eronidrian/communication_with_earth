@@ -11,10 +11,19 @@ from textual.widgets import Static, Input, Label, Button, Rule
 
 from constants import SECONDS_BETWEEN_DISPATCHES, MESSAGE_MAX_LENGTH, SUBJECT_MAX_LENGTH, BACKUP_FILE
 from data_structures import TextMessage, Dispatch, User
+from users import USERS
 
 
 class UserInfoDisplay(Static):
     """Show info about the current user"""
+
+    user = reactive(USERS["no_account"])
+    def render(self):
+        if self.user == USERS["no_account"]:
+            return "Current user ID: 0 (nobody logged in)"
+        else:
+            return (f"Current user ID: {self.user.user_id}\n"
+                    f"Text message limit: {self.user.text_message_limit}")
 
 
 class TimeDisplay(Static):

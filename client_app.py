@@ -4,7 +4,6 @@ from datetime import datetime
 
 from textual import events
 from textual.app import ComposeResult
-from textual.reactive import reactive
 from textual.widgets import Header, Footer
 from textual_countdown import Countdown
 
@@ -85,7 +84,7 @@ class ClientApp(BaseApp):
             self.query_one(ClientMainDisplay).decrypt_all_dispatches_of_user(self.current_user)
             self.query_one(ClientMainDisplay).refresh(recompose=True)
 
-        self.query_one(UserInfoDisplay).update(f"{self.current_user.user_id} is logged in")
+        self.query_one(UserInfoDisplay).user = self.current_user
         self.notify(title=f"Welcome", message=f"You successfully logged in as {self.current_user.user_id}",
                     severity="information",
                     timeout=5.0)
@@ -102,7 +101,7 @@ class ClientApp(BaseApp):
             self.query_one(ClientMainDisplay).refresh(recompose=True)
         past_user = self.current_user
         self.current_user = USERS["no_account"]
-        self.query_one(UserInfoDisplay).update(f"User ID: {self.current_user.user_id} (nobody logged in)")
+        self.query_one(UserInfoDisplay).user = USERS["no_account"]
         self.notify(title="Goodbye", message="You successfully logged out", severity="information", timeout=5.0)
         self.logger.info(f"User {past_user} logged out")
 
@@ -125,7 +124,7 @@ class ClientApp(BaseApp):
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         yield Footer()
-        yield UserInfoDisplay(f"User ID: {self.current_user.user_id} (nobody logged in)")
+        yield UserInfoDisplay()
         yield TimeDisplay()
         yield Countdown()
         yield ClientMainDisplay()

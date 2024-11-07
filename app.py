@@ -27,7 +27,7 @@ def is_socket_closed(sock: socket.socket) -> bool:
 
 class BaseApp(App):
     CSS_PATH = "stylesheet.tcss"
-    BINDINGS = [("w,W", "write_message", "Write message"), ("ctrl+c", "do_nothing")]
+    BINDINGS = [("w,W", "write_message", "Write message")] #("ctrl+c", "do_nothing")]
     ENABLE_COMMAND_PALETTE = False
 
     TITLE = "System for communication with the Earth"
