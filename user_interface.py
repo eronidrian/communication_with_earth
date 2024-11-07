@@ -23,7 +23,7 @@ class UserInfoDisplay(Static):
             return "Current user ID: 0 (nobody logged in)"
         else:
             return (f"Current user ID: {self.user.user_id}\n"
-                    f"Text message limit: {self.user.text_message_limit}")
+                    f"Message limit for one dispatch: {self.user.text_message_limit}")
 
 
 class TimeDisplay(Static):
@@ -51,6 +51,21 @@ class TimeDisplay(Static):
 
     def reset(self):
         self.time_left = self.seconds_between_dispatches
+
+
+# class CharacterCounter(Static):
+#     characters = reactive(0)
+#
+#     def __init__(self, limit: int) -> None:
+#         self.limit = limit
+#         super().__init__()
+#
+#     def render(self):
+#         if self.characters > self.limit:
+#             return f"\033[31{self.characters}/{self.limit}\033[0m"
+#         else:
+#             return f"{self.characters}/{self.limit}"
+
 
 
 class TextMessageDisplay(Static):
@@ -195,18 +210,6 @@ class TextMessageInput(Widget):
             self.notify(title="Empty text", message="The text of the message cannot be empty. Add some text.",
                         severity="error", timeout=5.0)
             return False
-        subject_len = len(self.query_one("#subject").value)
-        if subject_len > SUBJECT_MAX_LENGTH:
-            self.notify(title="Subject too long",
-                        message=f"The message subject is {subject_len} long. Maximum length is {SUBJECT_MAX_LENGTH} characters.",
-                        severity="error", timeout=5.0)
-            return False
-        text_len = len(self.query_one("#text").value)
-        if text_len > MESSAGE_MAX_LENGTH:
-            self.notify(title="Text too long",
-                        message=f"The message text is {text_len} long. Maximum length is {MESSAGE_MAX_LENGTH} characters.",
-                        severity="error", timeout=5.0)
-            return False
         return True
 
     def send_button_pressed(self) -> None:
@@ -236,10 +239,10 @@ class TextMessageInput(Widget):
             self.send_button_pressed()
 
     def compose(self) -> ComposeResult:
-        yield Label("Subject:")
-        yield Input(id="subject", placeholder="Specify message recipient or subject")
-        yield Label("Text:")
-        yield Input(id="text", placeholder="Write message text")
+        yield Label(f"Subject (max length {SUBJECT_MAX_LENGTH}):")
+        yield Input(id="subject", placeholder="Specify message recipient or subject", max_length=SUBJECT_MAX_LENGTH)
+        yield Label(f"Text (max length {MESSAGE_MAX_LENGTH}):")
+        yield Input(id="text", placeholder="Write message text", max_length=MESSAGE_MAX_LENGTH)
         with Horizontal():
             yield Button(label="Send", variant="success", id="send")
             yield Button(label="Cancel", variant="error", id="cancel")

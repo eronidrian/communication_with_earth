@@ -40,16 +40,7 @@ class ServerTextMessageInput(TextMessageInput):
                         message="The message does not have any recipient. Select the recipient", severity="error",
                         timeout=5.0)
             return False
-        if self.query_one("#subject").value == "":
-            self.notify(title="Empty subject",
-                        message="The subject of the message cannot be empty. Fill in the subject.", severity="error",
-                        timeout=5.0)
-            return False
-        if self.query_one("#text").value == "":
-            self.notify(title="Empty text", message="The text of the message cannot be empty. Add some text.",
-                        severity="error", timeout=5.0)
-            return False
-        return True
+        return super().validate_text_message()
 
     def send_button_pressed(self) -> None:
         if not self.server_validate_text_message():
