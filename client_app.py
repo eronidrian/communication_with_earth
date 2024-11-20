@@ -1,5 +1,6 @@
 import socket
 import logging
+import subprocess
 from datetime import datetime
 
 from textual import events
@@ -120,6 +121,23 @@ class ClientApp(BaseApp):
     def create_text_message(self, text_message: TextMessageInput.TextMessageSubmitted) -> TextMessage:
         return TextMessage(self.current_user, USERS["earth"], text_message.subject, text_message.text,
                            datetime.now().strftime("%H:%M:%S"))
+
+    def print_dispatch(self, dispatch: Dispatch) -> None:
+        with open("tmp.txt", "w") as f:
+            f.write(dispatch.pretty_print())
+
+        result = subprocess.run(['libreoffice', '--convert-to', 'pdf', 'tmp.txt'], capture_output=True, text=True)
+        self.logger.info(f"Converting to pdf returned: stdout {result.stdout}, stderr {result.stderr}")
+        result = subprocess.run(['ghostscript-printer-app', 'tmp.pdf'], capture_output=True, text=True)
+        self.logger.info(f"Printing returned: stdout {result.stdout}, stderr {result.stderr}")
+
+
+
+    def receive_dispatch(self) -> None:
+        received_dispatch = super().receive_dispatch()
+        if not received_dispatch.is_empty:
+            self.print_dispatch(received_dispatch)
+
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)

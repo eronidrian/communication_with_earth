@@ -27,7 +27,7 @@ def is_socket_closed(sock: socket.socket) -> bool:
 
 class BaseApp(App):
     CSS_PATH = "stylesheet.tcss"
-    BINDINGS = [("w,W", "write_message", "Write message")] #("ctrl+c", "do_nothing")]
+    BINDINGS = [("w,W", "write_message", "Write message"),] #("ctrl+c", "do_nothing")]
     ENABLE_COMMAND_PALETTE = False
 
     TITLE = "System for communication with the Earth"
@@ -97,7 +97,7 @@ class BaseApp(App):
     def handle_encryption(self, received_dispatch: Dispatch) -> None:
         pass
 
-    def receive_dispatch(self) -> None:
+    def receive_dispatch(self) -> Dispatch | None:
         received_data = self.peer.recv(16384)
         if not received_data:
             self.notify(title="Connection error",
@@ -114,6 +114,8 @@ class BaseApp(App):
         self.handle_encryption(received_dispatch)
 
         self.show_received_dispatch(received_dispatch)
+
+        return received_dispatch
 
     def create_dispatch_display(self, dispatch: Dispatch, received: bool) -> DispatchDisplay:
         return DispatchDisplay(dispatch, received=received)
