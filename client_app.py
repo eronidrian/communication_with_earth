@@ -128,7 +128,7 @@ class ClientApp(BaseApp):
 
         result = subprocess.run(['libreoffice', '--convert-to', 'pdf', 'tmp.txt'], capture_output=True, text=True)
         self.logger.info(f"Converting to pdf returned: stdout {result.stdout}, stderr {result.stderr}")
-        result = subprocess.run(['ghostscript-printer-app', 'tmp.pdf'], capture_output=True, text=True)
+        result = subprocess.run(['lp', 'tmp.pdf'], capture_output=True, text=True)
         self.logger.info(f"Printing returned: stdout {result.stdout}, stderr {result.stderr}")
 
 
