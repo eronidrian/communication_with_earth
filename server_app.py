@@ -2,10 +2,9 @@ import socket
 import logging
 from datetime import datetime
 
-from textual import events
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
-from textual.widgets import Static, Header, Footer, Select, Label, Input, Button, Rule
+from textual.containers import Horizontal
+from textual.widgets import Header, Footer, Select, Label, Input, Button
 from textual_countdown import Countdown
 
 from app import BaseApp
