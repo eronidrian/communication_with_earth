@@ -61,11 +61,11 @@ class ClientApp(BaseApp):
         return super().can_be_message_added_to_dispatch(text_message)
 
     def on_key(self, event: events.Key) -> None:
-        if len(self.submitted_id) < 10 and event.character in KEY_MAPPINGS.keys() and self.current_user == USERS["no_account"]:
+        if len(self.submitted_id) < 10 and event.character.lower() in KEY_MAPPINGS.keys() and self.current_user == USERS["no_account"]:
             self.submitted_id += event.character.lower()
             if len(self.submitted_id) == 10:
                 self.handle_login()
-        if event.character not in KEY_MAPPINGS.keys():
+        if event.character.lower() not in KEY_MAPPINGS.keys():
             self.submitted_id = ""
 
     def handle_login(self):
